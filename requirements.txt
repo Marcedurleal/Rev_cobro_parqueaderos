@@ -2,4 +2,3 @@ streamlit
 pandas
 PyYAML
 openpyxl
-ruamel.yaml

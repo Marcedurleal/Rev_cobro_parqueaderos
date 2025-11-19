@@ -174,62 +174,112 @@ def main():
         st.session_state.logged = False
 
     if not st.session_state.logged:
-        st.subheader("Inicio de sesión")
-        username = st.text_input("Usuario")
-        password = st.text_input("Contraseña", type="password")
+        st.subheader("🔐 Inicio de sesión")
+        username = st.text_input("👤 Usuario")
+        password = st.text_input("🔑 Contraseña", type="password")
 
         if st.button("Iniciar sesión"):
             if username == config.get("username") and password == config.get("password"):
                 st.session_state.logged = True
-                st.success("Acceso concedido")
+                st.success("Acceso concedido ✔")
             else:
                 st.error("Usuario o contraseña incorrectos")
         return
 
+    # ==============================
+    # UI MEJORADA – PASO A PASO
+    # ==============================
+
     st.success("🔓 Acceso verificado")
+    st.markdown("---")
 
-    # ==============================
-    # CARGA DE ARCHIVOS
-    # ==============================
-    app_file = st.file_uploader("📥 Cargar Base APP", type=["xlsx"])
-    cobros_file = st.file_uploader("📥 Cargar Base COBROS", type=["xlsx"])
-    sisco_file = st.file_uploader("📥 Cargar Base SISCO", type=["xlsx"])
+    st.header("📌 Paso 1: Cargar archivos requeridos")
 
+    st.markdown("""
+    Para ejecutar correctamente el cruce debes cargar **tres archivos Excel**:
+
+    ### 📥 Archivos requeridos
+    1. **Base APP**  
+       Contiene los parqueaderos por unidad. Se descarga del sistema APP.
+
+    2. **Base de Cobros**  
+       Contiene tarifas de carro y moto por conjunto.
+
+    3. **Base SISCO**  
+       Contiene los valores cobrados realmente (carro y moto).
+
+    ---
+    """)
+
+    # CARGA DE ARCHIVOS CON INSTRUCCIONES
+    app_file = st.file_uploader(
+        "📄 1. Cargar Archivo APP (Uno por conjunto – formato .xlsx)",
+        type=["xlsx"],
+        help="Debe contener varias hojas: cada hoja debe tener el nombre del conjunto."
+    )
+
+    cobros_file = st.file_uploader(
+        "🏷️ 2. Cargar Archivo de Cobros (tarifas CARRO y MOTO)",
+        type=["xlsx"],
+        help="Archivo con columnas CONJUNTO, CARRO, MOTO."
+    )
+
+    sisco_file = st.file_uploader(
+        "💰 3. Cargar Archivo SISCO (valores cobrados)",
+        type=["xlsx"],
+        help="Archivo que contiene las columnas codigo, cuotaparqu, moto y Nombre_Hoja."
+    )
+
+    st.markdown("---")
+
+    # VALIDACIÓN AUTOMÁTICA DE HOJAS AUTORIZADAS
     if app_file:
+        st.subheader("🔎 Validando conjuntos autorizados…")
+
         hojas_autorizadas, hojas_no_autorizadas = validar_hojas(app_file, conjuntos_autorizados)
 
+        if hojas_autorizadas:
+            st.success("🟢 Hojas autorizadas detectadas:")
+            st.write(hojas_autorizadas)
+
         if hojas_no_autorizadas:
-            st.warning("⚠️ Hojas NO autorizadas:")
+            st.warning("🟠 Hojas no autorizadas:")
             st.write(hojas_no_autorizadas)
 
-        st.success("Hojas autorizadas:")
-        st.write(hojas_autorizadas)
+        st.markdown("---")
 
     # ==============================
-    # BOTÓN PARA PROCESAR
+    # BOTÓN DE EJECUCIÓN
     # ==============================
-    if app_file and cobros_file and sisco_file:
-        if st.button("🚀 Ejecutar Cruce"):
-            tabla_final = procesar_datos(app_file, cobros_file, sisco_file, hojas_autorizadas)
+    st.header("🚀 Paso 2: Ejecutar el Cruce")
 
-            if tabla_final is not None:
-                st.success("✔ Cruce realizado correctamente")
-                st.dataframe(tabla_final)
+    boton_disabled = not (app_file and cobros_file and sisco_file)
 
-                # Generar archivo descargable
-                buffer = BytesIO()
-                tabla_final.to_excel(buffer, index=False)
-                buffer.seek(0)
+    if boton_disabled:
+        st.info("⚠️ Debes cargar los **tres archivos** antes de ejecutar el cruce.")
 
-                st.download_button(
-                    label="📤 Descargar Informe Excel",
-                    data=buffer,
-                    file_name="Cruce_Parqueaderos.xlsx",
-                    mime="application/vnd.ms-excel"
-                )
+    if st.button("🚀 Ejecutar Cruce", disabled=boton_disabled):
+        tabla_final = procesar_datos(app_file, cobros_file, sisco_file, hojas_autorizadas)
+
+        if tabla_final is not None:
+            st.success("✔ Cruce realizado correctamente")
+            st.dataframe(tabla_final)
+
+            # Descargar
+            buffer = BytesIO()
+            tabla_final.to_excel(buffer, index=False)
+            buffer.seek(0)
+
+            st.download_button(
+                label="📤 Descargar Informe Excel",
+                data=buffer,
+                file_name="Cruce_Parqueaderos.xlsx",
+                mime="application/vnd.ms-excel"
+            )
 
 
 if __name__ == "__main__":
     main()
+
 
 

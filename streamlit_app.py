@@ -3,6 +3,12 @@ import pandas as pd
 import yaml
 import os
 
+
+try:
+    import yaml
+except ModuleNotFoundError:
+    import ruamel.yaml as yaml
+
 # ==============================
 # 🔐 Cargar credenciales
 # ==============================
@@ -110,4 +116,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
